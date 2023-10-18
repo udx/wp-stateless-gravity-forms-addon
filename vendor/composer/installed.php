@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'udx/wp-stateless-gravity-forms-addon',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => NULL,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '581af8c8faccd77caceaa20f18d0ada6be9caa8f',
         'type' => 'wordpress-plugin',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -317,9 +317,9 @@
             'dev_requirement' => true,
         ),
         'udx/wp-stateless-gravity-forms-addon' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => NULL,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '581af8c8faccd77caceaa20f18d0ada6be9caa8f',
             'type' => 'wordpress-plugin',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
