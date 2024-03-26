@@ -1,9 +1,13 @@
 <?php
 
-namespace WPSL\GravityForms;
+namespace SLCA\GravityForms;
 
 use wpCloud\StatelessMedia\Compatibility;
+use wpCloud\StatelessMedia\Helper;
 
+/**
+ * Class GravityForms
+ */
 class GravityForms extends Compatibility {
   protected $id = 'gravity-form';
   protected $title = 'Gravity Forms';
@@ -62,26 +66,20 @@ class GravityForms extends Compatibility {
           $name = substr($v, $position);
           $absolutePath = $dir['basedir'] . '/' .  $name;
           $name = apply_filters('wp_stateless_file_name', $name, 0);
-          // doing sync
+
           do_action('sm:sync::syncFile', $name, $absolutePath);
           $value[$k] = ud_get_stateless_media()->get_gs_host() . '/' . $name;
-          // Todo add filter.
         }
       }
 
       if ($field->multipleFiles) {
-        $value = json_encode($value);
+        $value = wp_json_encode($value);
       } else {
         $value = array_pop($value);
       }
     } else if ($type == 'post_image') {
       add_action('gform_after_create_post', function ($post_id, $lead, $form) use ($value, $field) {
-        global $wpdb;
         $dir = wp_upload_dir();
-        $lead_detail_id         = $lead['id'];
-        $gf_upload_root        = \GFFormsModel::get_upload_root();
-        $gf_upload_url_root    = \GFFormsModel::get_upload_url_root();
-        $lead_detail_table      = \GFFormsModel::get_lead_details_table_name();
 
         $position = strpos($value, 'gravity_forms/');
         $_name = substr($value, $position); // gravity_forms/
@@ -94,15 +92,30 @@ class GravityForms extends Compatibility {
         do_action('sm:sync::syncFile', $name, $absolutePath);
 
         $value = ud_get_stateless_media()->get_gs_host() . '/' . $name;
-        // Todo add filter.
-        if (version_compare($this->plugin_version, '2.3', '<')) { // older version
-          $result = $wpdb->update($lead_detail_table, array('value' => $value), array('lead_id' => $lead_detail_id, 'form_id' => $form['id'], 'field_number' => $field['id'],), array('%s'), array('%d'));
-        } else { // New version
-          $result = $wpdb->update(\GFFormsModel::get_entry_meta_table_name(), array('meta_value' => $value), array('entry_id' => $lead_detail_id, 'form_id' => $form['id'], 'meta_key' => $field['id'],), array('%s'), array('%d'));
-        }
+
+        gform_update_meta($lead['id'], $field['id'], $value, $form['id']);
       }, 10, 3);
     }
     return $value;
+  }
+
+  /**
+   * Get relative filename for file values in gravity forms.
+   * Converts: https://mysite.com/wp-content/uploads/gravity_forms/folder_hash/2024/03/photo-123.jpeg|:||:||:||:|
+   * To: https://storage.googleapis.com/my_bucket/gravity_forms/folder_hash/2024/03/photo-123.jpeg
+   * 
+   * @param $filename
+   * @return string|null
+   */
+  private function get_updated_filename($filename) {
+    $position = strpos($filename, 'gravity_forms/');
+    $name = substr($filename, $position); // gravity_forms/...
+    // Removed |:| from end of the url.
+    $arr_name = explode('|:|', $name);
+    $name = rgar($arr_name, 0); 
+    $name = apply_filters('wp_stateless_file_name', $name, 0);
+
+    return ud_get_stateless_media()->get_gs_host() . '/' . $name;
   }
 
   /**
@@ -113,77 +126,67 @@ class GravityForms extends Compatibility {
    * @throws \Exception
    */
   public function modify_db($file_path, $fullsizepath, $media) {
-    global $wpdb;
-    $wpdb->hide_errors();
     $position = strpos($file_path, 'gravity_forms/');
     $is_index = strpos($file_path, 'index.html');
-    $is_htaccess = strpos($file_path, '.htaccess');
+
+    if ($position === false || $is_index) {
+      return;
+    }
+
+    $dir = wp_upload_dir();
     $root_dir = ud_get_stateless_media()->get('sm.root_dir');
     $root_dir = apply_filters("wp_stateless_handle_root_dir", $root_dir);
 
-    if (empty($this->plugin_version) && class_exists('GFForms')) {
-      $this->plugin_version = \GFForms::$version;
-    }
+    $file_path = trim($file_path, '/');
+    // Use base file name since the URL in the DB could be encoded with in an array
+    $file_single = basename($file_path);
 
-    $gf_val_column = 'meta_value';
-    $gf_table = \GFFormsModel::get_entry_meta_table_name();
-    if (version_compare($this->plugin_version, '2.3', '<')) {
-      $gf_val_column = 'value';
-    }
+    // Get the entries with the file name
+    $entries = \GFAPI::get_entries(
+      0,
+      array(
+        'field_filters' => array(
+          array(
+            'key' => 'meta_value',
+            'operator' => 'contains',
+            'value' => $file_single
+          )
+        )
+      )
+    );
 
-    if ($position !== false && !$is_index) {
-      $dir = wp_upload_dir();
-      $file_path = trim($file_path, '/');
-      //EDIT: Use base file name since the URL in the DB could be encoded with in an array
-      $file_single = basename($file_path);
+    foreach ( $entries as $entry ) {
+      // Search entry for the field ID and value that contains our file name 
+      foreach ( $entry as $field_id => $value ) {
+        if ( strpos($value, $file_single) === false ) {
+          continue;
+        }
 
-      // Todo add filter.
-
-      // We need to get results from db because of post image field have extra data at the end of url.
-      // Also url could be array and json encoded.
-      // Unless we would loss those data.
-      // xyz.jpg|:|tile|:|description|:|
-      $query = sprintf(
-        "
-                    SELECT id, {$gf_val_column} AS value FROM {$gf_table}
-                    WHERE {$gf_val_column} like '%s';
-                    ",
-        '%' . $file_single . '%'
-      );
-      $results = $wpdb->get_results($query);
-      $this->throw_db_error();
-
-      foreach ($results as $result) {
         $position = false;
-        //EDIT: Check if value is json encoded, if so, cycle through array and replace URLs.
-        $value = json_decode($result->value);
 
-        if (json_last_error() === 0) {
-          foreach ($value  as $k => $v) {
+        // Check if value is json encoded, if so, cycle through array and replace URLs.
+        $result = json_decode($value);
+
+        if ( json_last_error() === 0 ) {
+          foreach ($result as $k => $v) {
             $position = strpos($v, $dir['baseurl']);
+
             if ($position !== false) {
-              $value[$k] = str_replace($dir['baseurl'], ud_get_stateless_media()->get_gs_host() . '/' . $root_dir, $v);
+              $result[$k] = $this->get_updated_filename($v);
             }
           }
 
-          $result->value = json_encode($value);
+          $result = wp_json_encode($value);
         } else {
-          $position = strpos($result->value, $dir['baseurl']);
-          $result->value = str_replace($dir['baseurl'], ud_get_stateless_media()->get_gs_host() . '/' . $root_dir, $result->value);
+          $position = strpos($value, $dir['baseurl']);
+
+          if ($position !== false) {
+            $result = $this->get_updated_filename($value);
+          }
         }
 
         if ($position !== false) {
-          $query = sprintf(
-            "
-                            UPDATE {$gf_table}
-                            SET {$gf_val_column} = '%s'
-                            WHERE id = %d
-                            ",
-            $result->value,
-            $result->id
-          );
-          $entries = $wpdb->get_results($query);
-          $this->throw_db_error();
+          gform_update_meta($entry['id'], $field_id, $result, $entry['form_id']);
         }
       }
     }
@@ -204,7 +207,7 @@ class GravityForms extends Compatibility {
       $wpdb->print_error();
       $error = ob_get_clean();
       if ($error) {
-        throw new \Exception($error);
+        throw new \Exception( esc_html($error) );
       }
     endif;
   }
@@ -237,6 +240,7 @@ class GravityForms extends Compatibility {
   }
 
   /**
+   * Skip cache busting while exporting.
    * @param $return
    * @param $filename
    * @return mixed
