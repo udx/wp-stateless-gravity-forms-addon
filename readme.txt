@@ -1,11 +1,11 @@
 === WP-Stateless - Gravity Forms Addon ===
 Contributors: usability_dynamics, andypotanin, ideric, maxim.peshkov, planvova, obolgun
 Donate link: https://udx.io
-Tags: gravity forms, GravityForms, gravity, google, google cloud, google cloud storage, cdn, uploads, media, stateless, backup
+Tags: gravity forms, gravity forms addon extension, google cloud storage, stateless, wp-stateless
 License: GPLv2 or later
 Requires PHP: 8.0
 Requires at least: 5.0
-Tested up to: 6.4.1
+Tested up to: 6.4.3
 Stable tag: 0.0.1
 
 Provides compatibility between the Gravity Forms and the WP-Stateless plugins.
@@ -21,7 +21,7 @@ Provides compatibility between the [Gravity Forms](https://www.gravityforms.com/
 
 = Notes =
 
-* Tested with Gravity Forms plugin version 2.7.17.1
+* Tested with Gravity Forms plugin version 2.8.5.1
 
 = Support, Feedback, & Contribute =
 
