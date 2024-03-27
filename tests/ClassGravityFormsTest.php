@@ -1,6 +1,6 @@
 <?php
 
-namespace WPSL\GravityForms;
+namespace SLCA\GravityForms;
 
 use PHPUnit\Framework\TestCase;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
@@ -9,7 +9,6 @@ use Brain\Monkey\Actions;
 use Brain\Monkey\Filters;
 use Brain\Monkey\Functions;
 use wpCloud\StatelessMedia\WPStatelessStub;
-use WPSL\GravityForms\GravityForms;
 
 /**
  * Class ClassGravityFormsTest
