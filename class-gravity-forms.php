@@ -14,16 +14,11 @@ class GravityForms extends Compatibility {
   protected $constant = 'WP_STATELESS_COMPATIBILITY_GF';
   protected $description = 'Enables support for these Gravity Forms features: file upload field, post image field, custom file upload field type.';
   protected $plugin_file = 'gravityforms/gravityforms.php';
-  protected $plugin_version;
-  protected $non_library_sync = true;
 
   /**
    * @param $sm
    */
   public function module_init($sm) {
-    if (class_exists('GFForms')) {
-      $this->plugin_version = \GFForms::$version;
-    }
     add_filter('gform_save_field_value', array($this, 'gform_save_field_value'), 10, 5);
     add_filter('stateless_skip_cache_busting', array($this, 'skip_cache_busting'), 10, 2);
 
@@ -43,10 +38,6 @@ class GravityForms extends Compatibility {
    */
   public function gform_save_field_value($value, $lead, $field, $form, $input_id) {
     if (empty($value)) return $value;
-
-    if (empty($this->plugin_version) && class_exists('GFForms')) {
-      $this->plugin_version = \GFForms::$version;
-    }
 
     $type = \GFFormsModel::get_input_type($field);
     if ($type == 'fileupload') {
