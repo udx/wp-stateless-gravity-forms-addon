@@ -63,6 +63,16 @@ class ClassGravityFormsTest extends TestCase {
 
     self::assertNotFalse( has_filter('gform_save_field_value', [ $gravityForms, 'gform_save_field_value' ]) );
     self::assertNotFalse( has_filter('stateless_skip_cache_busting', [ $gravityForms, 'skip_cache_busting' ]) );
+    self::assertNotFalse( has_filter('gform_upload_path', [ $gravityForms, 'gf_upload_path' ]) );
+  }
+
+  public function testShouldNotChangeUploadDir() {
+    $gravityForms = new GravityForms();
+
+    $this->assertEquals(
+      self::TEST_URL,
+      $gravityForms->gf_upload_path(self::TEST_URL)
+    );
   }
 
   public function testShouldSaveFieldValueFileUpload() {
