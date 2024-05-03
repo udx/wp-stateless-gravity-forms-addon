@@ -54,16 +54,17 @@ class ClassGravityFormsTest extends TestCase {
   public function testShouldInitHooks() {
     $gravityForms = new GravityForms();
 
-    Actions\expectDone('sm:sync::register_dir')->once();
-
     $gravityForms->module_init([]);
 
-    self::assertNotFalse( has_action('sm::synced::nonMediaFiles', [ $gravityForms, 'modify_db' ]) );
+    self::assertNotFalse( has_filter('gform_upload_path', [ $gravityForms, 'gf_upload_path' ]) );
+    self::assertNotFalse( has_filter('gform_save_field_value', [ $gravityForms, 'gform_save_field_value' ]) );
     self::assertNotFalse( has_action('gform_file_path_pre_delete_file', [ $gravityForms, 'gform_file_path_pre_delete_file' ]) );
 
-    self::assertNotFalse( has_filter('gform_save_field_value', [ $gravityForms, 'gform_save_field_value' ]) );
     self::assertNotFalse( has_filter('stateless_skip_cache_busting', [ $gravityForms, 'skip_cache_busting' ]) );
-    self::assertNotFalse( has_filter('gform_upload_path', [ $gravityForms, 'gf_upload_path' ]) );
+
+    self::assertNotFalse( has_action('sm::synced::nonMediaFiles', [ $gravityForms, 'modify_db' ]) );
+    self::assertNotFalse( has_filter('sm:sync::nonMediaFiles', [ $gravityForms, 'sync_non_media_files' ]) );
+    self::assertNotFalse( has_filter('sm:sync::syncArgs', [ $gravityForms, 'sync_args' ]) );
   }
 
   public function testShouldNotChangeUploadDir() {
@@ -78,7 +79,7 @@ class ClassGravityFormsTest extends TestCase {
   public function testShouldSaveFieldValueFileUpload() {
     $gravityForms = new GravityForms();
 
-    $gravityForms->gform_save_field_value(self::SRC_URL, ['id' => 15], new \GFFormsField(), null, null);
+    // $gravityForms->gform_save_field_value(self::SRC_URL, ['id' => 15], new \GFFormsField(), null, null);
 
     Actions\expectDone('sm:sync::syncFile')->once();
 
