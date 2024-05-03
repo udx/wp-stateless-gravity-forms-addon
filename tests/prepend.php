@@ -33,6 +33,10 @@ namespace wpCloud\StatelessMedia {
       return $this->options[$key];
     }
   
+    public function is_mode($key): ?string {
+      return $this->options['sm.mode'] === $key;
+    }
+  
     public function get_gs_host(): string {
       return self::TEST_GS_HOST;
     }

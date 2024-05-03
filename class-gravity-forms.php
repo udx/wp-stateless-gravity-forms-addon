@@ -9,26 +9,39 @@ use wpCloud\StatelessMedia\Helper;
  * Class GravityForms
  */
 class GravityForms extends Compatibility {
+  const GF_PATH = 'gravity_forms/';
+
   protected $id = 'gravity-form';
   protected $title = 'Gravity Forms';
   protected $constant = 'WP_STATELESS_COMPATIBILITY_GF';
   protected $description = 'Enables support for these Gravity Forms features: file upload field, post image field, custom file upload field type.';
   protected $plugin_file = 'gravityforms/gravityforms.php';
+  protected $plugin_version;
 
   /**
    * @param $sm
    */
   public function module_init($sm) {
+    if (class_exists('GFForms')) {
+      $this->plugin_version = \GFForms::$version;
+    }
+
     add_filter('gform_upload_path', array($this, 'gf_upload_path'), 10, 1);
     add_filter('gform_save_field_value', array($this, 'gform_save_field_value'), 10, 5);
+    add_action('gform_file_path_pre_delete_file', array($this, 'gform_file_path_pre_delete_file'), 10, 2);
+
     add_filter('stateless_skip_cache_busting', array($this, 'skip_cache_busting'), 10, 2);
 
-    do_action('sm:sync::register_dir', '/gravity_forms/');
-
     add_action('sm::synced::nonMediaFiles', array($this, 'modify_db'), 10, 3);
-    add_action('gform_file_path_pre_delete_file', array($this, 'gform_file_path_pre_delete_file'), 10, 2);
+    add_filter('sm:sync::nonMediaFiles', array($this, 'sync_non_media_files'), 20);
+    add_filter('sm:sync::syncArgs', array($this, 'sync_args'), 10, 4);
   }
 
+  /**
+   * Get full gs:// path.
+   * 
+   * @return string
+   */
   private function get_gs_path() {
     return 'gs://'  . ud_get_stateless_media()->get('sm.bucket');
   }
@@ -39,14 +52,13 @@ class GravityForms extends Compatibility {
    * @return mixed
    */
   public function gf_upload_path($upload_path) {
-    if ( ud_get_stateless_media()->get('sm.mode') !== 'stateless' ) {
+    if ( !ud_get_stateless_media()->is_mode('stateless') ) {
       return $upload_path;
     }
 
     $dir = wp_upload_dir();
-    $path = 'gs://'  . ud_get_stateless_media()->get('sm.bucket');
 
-    $upload_path['path'] = $this->get_gs_path() . str_replace($dir['basedir'], '', $upload_path['path']);
+    $upload_path['path'] = ud_get_stateless_media()->get_gs_path() . str_replace($dir['basedir'], '', $upload_path['path']);
     $upload_path['url'] = ud_get_stateless_media()->get_gs_host() . str_replace($dir['baseurl'], '', $upload_path['url']);
 
     return $upload_path;
@@ -78,7 +90,7 @@ class GravityForms extends Compatibility {
 
       foreach ($value as $k => $v) {
         if (empty($v)) continue;
-        $position = strpos($v, 'gravity_forms/');
+        $position = strpos($v, self::GF_PATH);
 
         if ($position !== false) {
           $name = substr($v, $position);
@@ -87,7 +99,7 @@ class GravityForms extends Compatibility {
 
           $name = apply_filters('wp_stateless_file_name', $name, 0);
 
-          do_action( 'sm:sync::syncFile', $name, $absolutePath, false, $is_stateless ? array('name_with_root' => false) : array() );
+          do_action( 'sm:sync::syncFile', $name, $absolutePath );
 
           $value[$k] = ud_get_stateless_media()->get_gs_host() . '/' . $name;
         }
@@ -102,8 +114,8 @@ class GravityForms extends Compatibility {
       add_action('gform_after_create_post', function ($post_id, $lead, $form) use ($value, $field, $is_stateless) {
         $dir = wp_upload_dir();
 
-        $position = strpos($value, 'gravity_forms/');
-        $_name = substr($value, $position); // gravity_forms/
+        $position = strpos($value, self::GF_PATH);
+        $_name = substr($value, $position);
         $arr_name = explode('|:|', $_name);
         $name = rgar($arr_name, 0); // Removed |:| from end of the url.
 
@@ -111,7 +123,7 @@ class GravityForms extends Compatibility {
         $path = $is_stateless ? $this->get_gs_path() : $dir['basedir'];
         $absolutePath = $path . '/' .  $name;
         $name = apply_filters('wp_stateless_file_name', $name, 0);
-        do_action( 'sm:sync::syncFile', $name, $absolutePath, false, $is_stateless ? array('name_with_root' => false) : array() );
+        do_action( 'sm:sync::syncFile', $name, $absolutePath );
 
         $value = ud_get_stateless_media()->get_gs_host() . '/' . $name;
 
@@ -148,7 +160,7 @@ class GravityForms extends Compatibility {
    * @throws \Exception
    */
   public function modify_db($file_path, $fullsizepath, $media) {
-    $position = strpos($file_path, 'gravity_forms/');
+    $position = strpos($file_path, self::GF_PATH);
     $is_index = strpos($file_path, 'index.html');
 
     if ($position === false || $is_index) {
@@ -248,7 +260,7 @@ class GravityForms extends Compatibility {
 
     // If the url is a GCS link then remove it from GCS.
     if ($is_stateless !== false) {
-      $gs_name = substr($file_path, strpos($file_path, '/gravity_forms/'));
+      $gs_name = substr($file_path, strpos($file_path, '/' . self::GF_PATH));
       $file_path = $dir['basedir'] . $gs_name;
       $gs_name = apply_filters('wp_stateless_file_name', $gs_name, 0);
 
@@ -280,5 +292,82 @@ class GravityForms extends Compatibility {
       return $filename;
     }
     return $return;
+  }
+
+  /**
+   * Filter service files created by Gravity Forms for sync.
+   * 
+   * @param array $file_list
+   * @return array
+   */
+  public function sync_non_media_files($file_list) {
+    if ( !method_exists('\wpCloud\StatelessMedia\Utility', 'get_files') ) {
+      Helper::log('WP-Stateless version too old, please update.');
+
+      return $file_list;
+    }
+
+    $upload_dir = apply_filters('gform_upload_path', wp_upload_dir());
+    $key = ud_get_stateless_media()->is_mode('stateless') ? 'path' : 'basedir';
+    $basedir = $upload_dir[$key] ?? '';
+    $dir = $basedir . '/' . self::GF_PATH;
+
+    if (is_dir($dir)) {
+      // Getting all the files from dir recursively.
+      $files = Utility::get_files($dir);
+
+      // validating and adding to the $files array.
+      foreach ($files as $file) {
+        if (!file_exists($file)) {
+          continue;
+        }
+
+        // filter GF logs
+        if (strpos($file, self::GF_PATH . 'logs/') !== false) {
+          continue;
+        }
+
+        $basename = basename($file);
+
+        // filter out index.html, .htaccess files
+        if ( in_array($basename, array('index.html', '.htaccess')) ) {
+          continue;
+        }
+    
+        $file = str_replace( wp_normalize_path($basedir), '', wp_normalize_path($file) );
+        $file = trim($file, '/');
+
+        if (!in_array($file, $file_list)) {
+          $file_list[] = $file;
+        }
+      }
+    }
+      
+    return $file_list;
+  }
+      
+  /**
+   * Update args when uploading/syncing GF file to GCS.
+   * 
+   * @param array $args
+   * @param string $name
+   * @param string $file
+   * @param bool $force
+   * 
+   * @return array
+   */
+  public function sync_args($args, $name, $file, $force) {
+    if ( strpos($name, self::GF_PATH) !== 0 ) {
+      return $args;
+    }
+
+    if ( ud_get_stateless_media()->is_mode('stateless') ) {
+      $args['name_with_root'] = false;
+    }
+
+    $args['source'] = 'Gravity Forms';
+    $args['source_version'] = $this->plugin_version;
+
+    return $args;
   }
 }
