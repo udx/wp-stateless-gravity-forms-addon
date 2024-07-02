@@ -83,7 +83,7 @@ class GravityForms extends Compatibility {
       $dir = wp_upload_dir();
 
       if ($field->multipleFiles) {
-        $value = json_decode($value);
+        $value = json_decode($value, true);
       } else {
         $value = array($value);
       }
