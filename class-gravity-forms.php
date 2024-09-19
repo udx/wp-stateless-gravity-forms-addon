@@ -4,6 +4,7 @@ namespace SLCA\GravityForms;
 
 use wpCloud\StatelessMedia\Compatibility;
 use wpCloud\StatelessMedia\Helper;
+use wpCloud\StatelessMedia\Utility;
 
 /**
  * Class GravityForms
