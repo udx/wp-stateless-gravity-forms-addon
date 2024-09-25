@@ -90,7 +90,10 @@ class GravityForms extends Compatibility {
       }
 
       foreach ($value as $k => $v) {
-        if (empty($v)) continue;
+        if ( empty($v) || !is_string($v) ) {
+          continue;
+        }
+
         $position = strpos($v, self::GF_PATH);
 
         if ($position !== false) {
