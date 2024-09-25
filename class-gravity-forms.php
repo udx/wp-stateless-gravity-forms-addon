@@ -4,6 +4,7 @@ namespace SLCA\GravityForms;
 
 use wpCloud\StatelessMedia\Compatibility;
 use wpCloud\StatelessMedia\Helper;
+use wpCloud\StatelessMedia\Utility;
 
 /**
  * Class GravityForms
@@ -83,13 +84,16 @@ class GravityForms extends Compatibility {
       $dir = wp_upload_dir();
 
       if ($field->multipleFiles) {
-        $value = json_decode($value);
+        $value = json_decode($value, true);
       } else {
         $value = array($value);
       }
 
       foreach ($value as $k => $v) {
-        if (empty($v)) continue;
+        if ( empty($v) || !is_string($v) ) {
+          continue;
+        }
+
         $position = strpos($v, self::GF_PATH);
 
         if ($position !== false) {
