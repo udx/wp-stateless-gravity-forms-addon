@@ -5,12 +5,12 @@
  * Plugin URI: https://stateless.udx.io/addons/gravity-forms/
  * Description: Provides compatibility between the Gravity Forms and the WP-Stateless plugins.
  * Author: UDX
- * Version: 0.0.2
+ * Version: 0.0.3
  * Text Domain: wp-stateless-gravity-forms-addon
  * Author URI: https://udx.io
  * License: GPLv2 or later
  * 
- * Copyright 2024 UDX (email: info@udx.io)
+ * Copyright 2025 UDX (email: info@udx.io)
  */
 
 namespace SLCA\GravityForms;
