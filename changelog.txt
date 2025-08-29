@@ -1,4 +1,7 @@
 == Changelog ==
+= 0.0.3 =
+* Tested with Gravity Forms version 2.9.16.1
+
 = 0.0.2 =
 * FIX: improved compatibility with Stateless mode.
 * FIX: compatibility with newer Gravity Forms version.
