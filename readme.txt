@@ -5,8 +5,8 @@ Tags: gravity forms, gravity forms addon extension, google cloud storage, statel
 License: GPLv2 or later
 Requires PHP: 8.0
 Requires at least: 5.0
-Tested up to: 6.6.2
-Stable tag: 0.0.2
+Tested up to: 6.8
+Stable tag: 0.0.3
 
 Provides compatibility between the Gravity Forms and the WP-Stateless plugins.
 
@@ -21,7 +21,7 @@ Provides compatibility between the [Gravity Forms](https://www.gravityforms.com/
 
 = Notes =
 
-* Tested with Gravity Forms plugin version 2.8.17
+* Tested with Gravity Forms plugin version 2.9.16.1
 
 = Support, Feedback, & Contribute =
 
