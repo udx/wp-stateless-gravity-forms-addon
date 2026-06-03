@@ -83,10 +83,17 @@ class GravityForms extends Compatibility {
     if ($type == 'fileupload') {
       $dir = wp_upload_dir();
 
-      if ($field->multipleFiles) {
-        $value = json_decode($value, true);
+      // GF 2.10+ standardized the File Upload storage format so single-file
+      // fields are also stored as a JSON array. Detect the shape from the
+      // value itself rather than from $field->multipleFiles so we work on
+      // both old and new GF versions. Also tolerate an already-decoded array
+      // in case another filter ran ahead of us.
+      if (is_array($value)) {
+        $was_json = true;
       } else {
-        $value = array($value);
+        $decoded = is_string($value) ? json_decode($value, true) : null;
+        $was_json = is_array($decoded);
+        $value = $was_json ? $decoded : array($value);
       }
 
       foreach ($value as $k => $v) {
@@ -109,7 +116,9 @@ class GravityForms extends Compatibility {
         }
       }
 
-      if ($field->multipleFiles) {
+      // Re-encode in the same shape we received so older GF versions keep
+      // storing single-file values as a plain string.
+      if ($was_json) {
         $value = wp_json_encode($value);
       } else {
         $value = array_pop($value);
@@ -205,7 +214,7 @@ class GravityForms extends Compatibility {
         // Check if value is json encoded, if so, cycle through array and replace URLs.
         $result = json_decode($value);
 
-        if ( json_last_error() === 0 ) {
+        if ( json_last_error() === JSON_ERROR_NONE && is_array($result) ) {
           foreach ($result as $k => $v) {
             $position = strpos($v, $dir['baseurl']);
 
@@ -214,7 +223,7 @@ class GravityForms extends Compatibility {
             }
           }
 
-          $result = wp_json_encode($value);
+          $result = wp_json_encode($result);
         } else {
           $position = strpos($value, $dir['baseurl']);
 
