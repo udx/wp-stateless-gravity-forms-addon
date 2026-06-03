@@ -1,4 +1,8 @@
 == Changelog ==
+= 0.0.4 =
+* FIX: compatibility with Gravity Forms 2.10+ JSON storage format for File Upload fields (single-file fields are now also stored as JSON arrays).
+* FIX: modify_db() re-encoded the original value instead of the rewritten one during Compatibility Files Sync, and the JSON validity check now requires an array.
+
 = 0.0.3 =
 * Tested with Gravity Forms version 2.9.16.1
 

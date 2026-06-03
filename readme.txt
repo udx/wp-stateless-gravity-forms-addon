@@ -6,7 +6,7 @@ License: GPLv2 or later
 Requires PHP: 8.0
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 0.0.3
+Stable tag: 0.0.4
 
 Provides compatibility between the Gravity Forms and the WP-Stateless plugins.
 
@@ -21,7 +21,7 @@ Provides compatibility between the [Gravity Forms](https://www.gravityforms.com/
 
 = Notes =
 
-* Tested with Gravity Forms plugin version 2.9.16.1
+* Tested with Gravity Forms plugin version 2.10.x
 
 = Support, Feedback, & Contribute =
 
@@ -44,6 +44,10 @@ To ensure new releases cause as little disruption as possible, we rely on early 
 == Upgrade Notice ==
 
 == Changelog ==
+= 0.0.4 =
+* FIX: compatibility with Gravity Forms 2.10+ JSON storage format for File Upload fields (single-file fields are now also stored as JSON arrays).
+* FIX: modify_db() re-encoded the original value instead of the rewritten one during Compatibility Files Sync, and the JSON validity check now requires an array.
+
 = 0.0.3 =
 * Tested with Gravity Forms version 2.9.16.1
 
