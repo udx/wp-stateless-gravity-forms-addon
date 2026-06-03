@@ -21,7 +21,7 @@ Provides compatibility between the [Gravity Forms](https://www.gravityforms.com/
 
 = Notes =
 
-* Tested with Gravity Forms plugin version 2.10.x
+* Tested with Gravity Forms plugin version 2.10.2
 
 = Support, Feedback, & Contribute =
 

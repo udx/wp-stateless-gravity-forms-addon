@@ -86,14 +86,14 @@ class GravityForms extends Compatibility {
       // GF 2.10+ standardized the File Upload storage format so single-file
       // fields are also stored as a JSON array. Detect the shape from the
       // value itself rather than from $field->multipleFiles so we work on
-      // both old and new GF versions.
-      $decoded = is_string($value) ? json_decode($value, true) : null;
-      $was_json = is_array($decoded);
-
-      if ($was_json) {
-        $value = $decoded;
+      // both old and new GF versions. Also tolerate an already-decoded array
+      // in case another filter ran ahead of us.
+      if (is_array($value)) {
+        $was_json = true;
       } else {
-        $value = array($value);
+        $decoded = is_string($value) ? json_decode($value, true) : null;
+        $was_json = is_array($decoded);
+        $value = $was_json ? $decoded : array($value);
       }
 
       foreach ($value as $k => $v) {
